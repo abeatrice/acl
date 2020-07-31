@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -10,23 +11,23 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
-type user struct {
-	id         int
-	username   string
-	first_name string
-	last_name  string
-	email      string
+type User struct {
+	ID         int
+	Username   string
+	First_name string
+	Last_name  string
+	Email      string
 }
 
-func userHandler(w http.ResponseWriter, r *http.Request) {
+func usersHandler(w http.ResponseWriter, r *http.Request) {
+	dbDriver := os.Getenv("DB_DRIVER")
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
 	dbDatabase := os.Getenv("DB_DATABASE")
-
 	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbHost, dbDatabase) //user:pass@tcp(host)/database
 
-	db, err := sql.Open(os.Getenv("DB_DRIVER"), dns)
+	db, err := sql.Open(dbDriver, dns)
 	check(err)
 	defer db.Close()
 
@@ -37,32 +38,33 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := stmt.Query()
 	check(err)
 
-	var (
-		id         int
-		username   string
-		first_name string
-		last_name  string
-		email      string
-	)
+	var user User
 
 	for rows.Next() {
-		err := rows.Scan(&id, &username, &first_name, &last_name, &email)
+		err := rows.Scan(&user.ID, &user.Username, &user.First_name, &user.Last_name, &user.Email)
 		check(err)
-		fmt.Printf("%T: %v\n", username, username)
+
+		// js, err := json.Marshal(user)
+		// check(err)
+
+		fmt.Printf("%T: %v\n", user, user)
+		// fmt.Printf("%T: %v\n", js, js)
+		// w.Header().Set("Content-Type", "application/json")
+		// w.Write(js)
 	}
+	fmt.Println("here2")
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("200 - Ok"))
 }
 
 func main() {
-	http.HandleFunc("/users", userHandler)
+	http.HandleFunc("/users", usersHandler)
 	http.ListenAndServe(":8000", nil)
 }
 
 func check(err error) {
 	if err != nil {
-		// log.Fatal(err)
-		panic(err)
+		log.Fatal(err)
 	}
 }

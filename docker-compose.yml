@@ -1,0 +1,20 @@
+version: '3.7'
+services:
+  acl:
+    container_name: acl
+    build: .
+    ports:
+      - 8000:8000
+    environment:
+      - APP_ENV=local
+      - DB_DRIVER=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=local
+      - DB_USERNAME=root
+      - DB_PASSWORD=password
+    networks:
+      - backend
+networks:
+  backend:
+    external: true

@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -14,31 +13,27 @@ import (
 )
 
 type User struct {
-	ID         int    `json:"id"`
+	ID         string `json:"id"`
 	Username   string `json:"username"`
 	First_name string `json:"first_name"`
 	Last_name  string `json:"last_name"`
 	Email      string `json:"email"`
 }
 
-func usersHandler(w http.ResponseWriter, r *http.Request) {
-	dbDriver := os.Getenv("DB_DRIVER")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbHost := os.Getenv("DB_HOST")
-	dbDatabase := os.Getenv("DB_DATABASE")
-	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbHost, dbDatabase) //user:pass@tcp(host)/database
+var DB *sql.DB
+var err error
 
-	db, err := sql.Open(dbDriver, dns)
-	check(err)
-	defer db.Close()
-
-	stmt, err := db.Prepare("SELECT id, username, first_name, last_name, email FROM users")
+func index(w http.ResponseWriter, r *http.Request) {
+	stmt, err := DB.Prepare("SELECT id, username, first_name, last_name, email FROM users")
 	check(err)
 	defer stmt.Close()
 
 	rows, err := stmt.Query()
-	check(err)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("users not found"))
+		return
+	}
 
 	var user User
 	var users []User
@@ -58,25 +53,13 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(json))
 }
 
-func userHandler(w http.ResponseWriter, r *http.Request) {
-	dbDriver := os.Getenv("DB_DRIVER")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbHost := os.Getenv("DB_HOST")
-	dbDatabase := os.Getenv("DB_DATABASE")
-	dns := fmt.Sprintf("%s:%s@tcp(%s)/%s", dbUser, dbPassword, dbHost, dbDatabase) //user:pass@tcp(host)/database
-
-	db, err := sql.Open(dbDriver, dns)
-	check(err)
-	defer db.Close()
-
+func show(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id := vars["id"]
 
 	var user User
 
-	row := db.QueryRow("SELECT id, username, first_name, last_name, email FROM users where id = ?", id)
-	err = row.Scan(&user.ID, &user.Username, &user.First_name, &user.Last_name, &user.Email)
+	row := DB.QueryRow("SELECT id, username, first_name, last_name, email FROM users where id = ?", vars["id"])
+	err := row.Scan(&user.ID, &user.Username, &user.First_name, &user.Last_name, &user.Email)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("user not found"))
@@ -84,22 +67,44 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json, err := json.Marshal(user)
+	check(err)
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(json))
 }
 
+func store(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("ok"))
+}
+
+func update(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("ok"))
+}
+
+func destroy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("ok"))
+}
+
 func main() {
+	DB, err = sql.Open(os.Getenv("DB_DRIVER"), os.Getenv("DB_DNS"))
+	check(err)
+	defer DB.Close()
+
 	router := mux.NewRouter()
 
-	router.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-	})
+	router.HandleFunc("/users", index).Methods("GET")
+	router.HandleFunc("/users/{id}", show).Methods("GET")
+	router.HandleFunc("/users", store).Methods("POST")
+	router.HandleFunc("/users/{id}", update).Methods("PUT", "PATCH")
+	router.HandleFunc("/users/{id}", destroy).Methods("DELETE")
 
-	router.HandleFunc("/users", usersHandler)
-	router.HandleFunc("/user/{id}", userHandler)
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
 

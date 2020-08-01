@@ -13,6 +13,8 @@ services:
       - DB_DATABASE=local
       - DB_USERNAME=root
       - DB_PASSWORD=password
+    volumes: 
+      - ./:/go/src/github.com/abeatrice/acl
     networks:
       - backend
 networks:

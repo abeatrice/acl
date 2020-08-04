@@ -24,11 +24,30 @@ var DB *sql.DB
 var err error
 
 func index(w http.ResponseWriter, r *http.Request) {
-	stmt, err := DB.Prepare("SELECT id, username, first_name, last_name, email FROM users")
+
+	params := r.URL.Query()
+
+	selectStmt := `SELECT id, username, first_name, last_name, email FROM users WHERE 1=1 `
+
+	if first_name, exists := params["first_name"]; exists {
+		selectStmt += `AND UPPER(first_name) LIKE UPPER('%` + first_name[0] + `%')`
+	}
+	if last_name, exists := params["last_name"]; exists {
+		selectStmt += `AND UPPER(last_name) LIKE UPPER('%` + last_name[0] + `%')`
+	}
+	if userName, exists := params["username"]; exists {
+		selectStmt += `AND UPPER(username) LIKE UPPER('%` + userName[0] + `%')`
+	}
+	if email, exists := params["email"]; exists {
+		selectStmt += `AND UPPER(email) LIKE UPPER('%` + email[0] + `%')`
+	}
+
+	stmt, err := DB.Prepare(selectStmt)
 	check(err)
 	defer stmt.Close()
 
 	rows, err := stmt.Query()
+
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("users not found"))

@@ -94,9 +94,36 @@ func show(w http.ResponseWriter, r *http.Request) {
 }
 
 func store(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+
+	var user User
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if user.Username == `` || user.First_name == `` || user.Last_name == `` || user.Email == `` {
+		http.Error(w, `username, first_name, last_name, and email are required`, http.StatusBadRequest)
+		return
+	}
+
+	stmt, err := DB.Prepare("INSERT INTO users (username, first_name, last_name, email) VALUES(?, ?, ?, ?)")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(user.Username, user.First_name, user.Last_name, user.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("ok"))
+	w.Write([]byte("user created"))
 }
 
 func update(w http.ResponseWriter, r *http.Request) {

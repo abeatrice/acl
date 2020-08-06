@@ -166,9 +166,28 @@ func update(w http.ResponseWriter, r *http.Request) {
 }
 
 func destroy(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	if vars["id"] == `` {
+		http.Error(w, `user id is required`, http.StatusBadRequest)
+		return
+	}
+
+	stmt, err := DB.Prepare(`DELETE FROM users WHERE id=?`)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	_, err = stmt.Exec(vars["id"])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("ok"))
+	w.Write([]byte("user deleted"))
 }
 
 func main() {

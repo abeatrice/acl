@@ -154,9 +154,13 @@ func update(w http.ResponseWriter, r *http.Request) {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(user.Username, user.First_name, user.Last_name, user.Email, vars["id"])
+	res, err := stmt.Exec(user.Username, user.First_name, user.Last_name, user.Email, vars["id"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if rows, _ := res.RowsAffected(); rows < 1 {
+		http.Error(w, `user id not found`, http.StatusNotFound)
 		return
 	}
 
@@ -179,9 +183,14 @@ func destroy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = stmt.Exec(vars["id"])
+	res, err := stmt.Exec(vars["id"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if rows, _ := res.RowsAffected(); rows < 1 {
+		http.Error(w, `user id not found`, http.StatusNotFound)
 		return
 	}
 

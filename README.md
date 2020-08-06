@@ -1,4 +1,4 @@
-# Lumen API
+# Users API
 
 This is a rest api built with [Go](https://golang.org/).
 

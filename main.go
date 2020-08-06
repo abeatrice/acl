@@ -127,9 +127,42 @@ func store(w http.ResponseWriter, r *http.Request) {
 }
 
 func update(w http.ResponseWriter, r *http.Request) {
+
+	var user User
+	vars := mux.Vars(r)
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if user.Username == `` || user.First_name == `` || user.Last_name == `` || user.Email == `` {
+		http.Error(w, `username, first_name, last_name, and email are requested`, http.StatusBadRequest)
+		return
+	}
+
+	if vars["id"] == `` {
+		http.Error(w, `user id required`, http.StatusBadRequest)
+		return
+	}
+
+	stmt, err := DB.Prepare("UPDATE users set username=?, first_name=?, last_name=?, email=? WHERE id = ?")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(user.Username, user.First_name, user.Last_name, user.Email, vars["id"])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("ok"))
+	w.Write([]byte("user updated"))
 }
 
 func destroy(w http.ResponseWriter, r *http.Request) {

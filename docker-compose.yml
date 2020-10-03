@@ -2,13 +2,15 @@ version: '3.7'
 services:
   acl:
     container_name: acl
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile-local
     ports:
       - 8000:8000
     environment:
       - APP_ENV=local
       - DB_DRIVER=mysql
-      - DB_HOST=mysql
+      - DB_HOST=localhost
       - DB_PORT=3306
       - DB_DATABASE=local
       - DB_USERNAME=root
